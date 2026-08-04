@@ -24,7 +24,7 @@ connectDB();
 /* ── Security middleware ── */
 app.use(helmet());
 app.use(cors({
-  origin: "https://fulclear.vercel.app",
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true,
   methods:     ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));

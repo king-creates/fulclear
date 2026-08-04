@@ -1,40 +1,41 @@
-import { useState }   from 'react';
-import { Building2, Edit2, Trash2, Plus, Users, CheckCircle } from 'lucide-react';
-import toast          from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import { Building2, Edit2, Trash2, Plus, Users, CheckCircle, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import DashboardLayout from '../../component/layout/DashboardLayout';
 import Button          from '../../component/common/Button';
+import adminService    from '../../services/adminService';
 
-const initialDepts = [
-  { id: 'library',        name: 'Library',              code: 'LIB', officer: 'Mrs. Adaeze Eze',  officers: 2, active: true  },
-  { id: 'bursary',        name: 'Bursary / Finance',    code: 'BUR', officer: 'Mr. James Obi',    officers: 3, active: true  },
-  { id: 'hostel',         name: 'Hostel Affairs',       code: 'HOS', officer: 'Mrs. Ngozi Bello', officers: 2, active: true  },
-  { id: 'alumni',         name: 'Alumni Relations',     code: 'ALU', officer: 'Mr. Seun Babs',    officers: 1, active: true  },
-  { id: 'academic',       name: 'Academic Affairs',     code: 'ACA', officer: 'Prof. Bello',      officers: 4, active: true  },
-  { id: 'studentaffairs', name: 'Student Affairs',      code: 'STU', officer: 'Dr. Kalu Eze',     officers: 3, active: true  },
-  { id: 'medical',        name: 'Medical Centre',       code: 'MED', officer: 'Dr. Amaka Obi',    officers: 2, active: true  },
-  { id: 'sports',         name: 'Sports & Recreation',  code: 'SPO', officer: 'Mr. Taiwo',        officers: 1, active: true  },
-  { id: 'department',     name: 'Departmental Office',  code: 'DEP', officer: 'Prof. Adamu',      officers: 5, active: true  },
-  { id: 'it',             name: 'ICT Unit',             code: 'ICT', officer: 'Mr. Chidi',        officers: 2, active: false },
-];
-
-const DeptModal = ({ dept, onClose, onSave }) => {
-  const isEdit = !!dept?.id;
+const DeptModal = ({ dept, onClose, onSaved }) => {
+  const isEdit = !!dept?._id;
   const [form, setForm] = useState({
-    name:    dept?.name    ?? '',
-    code:    dept?.code    ?? '',
-    officer: dept?.officer ?? '',
-    active:  dept?.active  ?? true,
+    name:     dept?.name     ?? '',
+    code:     dept?.code     ?? '',
+    isActive: dept?.isActive ?? true,
   });
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.code) {
       toast.error('Name and code are required.');
       return;
     }
-    onSave({ ...dept, ...form });
-    onClose();
-    toast.success(isEdit ? 'Department updated.' : 'Department created.');
+    try {
+      setSaving(true);
+      if (isEdit) {
+        await adminService.updateDepartment(dept._id, form);
+        toast.success('Department updated.');
+      } else {
+        await adminService.createDepartment(form);
+        toast.success('Department created.');
+      }
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save department.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -56,20 +57,16 @@ const DeptModal = ({ dept, onClose, onSave }) => {
             </div>
             <div className="form-group">
               <label className="form-label">Status</label>
-              <select className="form-select" value={form.active ? 'active' : 'inactive'} onChange={e => setForm(p => ({ ...p, active: e.target.value === 'active' }))}>
+              <select className="form-select" value={form.isActive ? 'active' : 'inactive'} onChange={e => setForm(p => ({ ...p, isActive: e.target.value === 'active' }))}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Head Officer</label>
-            <input className="form-input" value={form.officer} onChange={e => setForm(p => ({ ...p, officer: e.target.value }))} placeholder="Officer name" />
-          </div>
         </div>
         <div className="modal-footer">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={handleSave}>
+          <Button variant="primary" loading={saving} onClick={handleSave}>
             {isEdit ? 'Save Changes' : 'Create Department'}
           </Button>
         </div>
@@ -79,26 +76,55 @@ const DeptModal = ({ dept, onClose, onSave }) => {
 };
 
 const ManageDepartments = () => {
-  const [depts,     setDepts]     = useState(initialDepts);
+  const [depts,     setDepts]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editDept,  setEditDept]  = useState(null);
 
-  const handleSave = (saved) => {
-    if (saved.id) {
-      setDepts(prev => prev.map(d => d.id === saved.id ? { ...d, ...saved } : d));
-    } else {
-      setDepts(prev => [...prev, { ...saved, id: Date.now().toString(), officers: 0 }]);
+  useEffect(() => {
+    fetchDepts();
+  }, []);
+
+  const fetchDepts = async () => {
+    try {
+      setLoading(true);
+      const res = await adminService.getDepartments();
+      setDepts(res.data.departments);
+    } catch {
+      toast.error('Failed to load departments.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = (id) => {
-    setDepts(prev => prev.filter(d => d.id !== id));
-    toast.success('Department removed.');
+  const handleDelete = async (id) => {
+    try {
+      await adminService.deleteDepartment(id);
+      toast.success('Department removed.');
+      await fetchDepts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete department.');
+    }
   };
 
-  const toggleActive = (id) => {
-    setDepts(prev => prev.map(d => d.id === id ? { ...d, active: !d.active } : d));
+  const toggleActive = async (dept) => {
+    try {
+      await adminService.updateDepartment(dept._id, { isActive: !dept.isActive });
+      await fetchDepts();
+    } catch {
+      toast.error('Failed to update department status.');
+    }
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-20)' }}>
+          <Loader2 size={28} className="animate-spin" color="var(--color-primary-700)" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -107,27 +133,26 @@ const ManageDepartments = () => {
         <DeptModal
           dept={editDept}
           onClose={() => { setShowModal(false); setEditDept(null); }}
-          onSave={handleSave}
+          onSaved={fetchDepts}
         />
       )}
 
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <h1 className="page-title">Manage Departments</h1>
-          <p className="page-subtitle">{depts.filter(d => d.active).length} active clearance units</p>
+          <p className="page-subtitle">{depts.filter(d => d.isActive).length} active clearance units</p>
         </div>
         <Button variant="primary" onClick={() => { setEditDept(null); setShowModal(true); }}>
           <Plus size={16} /> Add Department
         </Button>
       </div>
 
-      {/* Summary */}
       <div className="stats-grid" style={{ marginBottom: 'var(--space-6)' }}>
         {[
-          { label: 'Total Units',    value: depts.length,                      variant: 'primary' },
-          { label: 'Active',         value: depts.filter(d => d.active).length, variant: 'success' },
-          { label: 'Inactive',       value: depts.filter(d => !d.active).length,variant: 'warning' },
-          { label: 'Total Officers', value: depts.reduce((s, d) => s + d.officers, 0), variant: 'info' },
+          { label: 'Total Units',    value: depts.length,                              variant: 'primary' },
+          { label: 'Active',         value: depts.filter(d => d.isActive).length,       variant: 'success' },
+          { label: 'Inactive',       value: depts.filter(d => !d.isActive).length,      variant: 'warning' },
+          { label: 'Total Officers', value: depts.reduce((s, d) => s + (d.officers?.length || 0), 0), variant: 'info' },
         ].map((s, i) => (
           <div className="stat-card" key={i}>
             <div className={`stat-icon ${s.variant}`}><Building2 size={22} /></div>
@@ -139,17 +164,22 @@ const ManageDepartments = () => {
         ))}
       </div>
 
-      {/* Department cards grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-4)' }}>
-        {depts.map(dept => (
-          <div key={dept.id} className="card" style={{ opacity: dept.active ? 1 : 0.65 }}>
+        {depts.length === 0 ? (
+          <div className="card" style={{ gridColumn: '1 / -1' }}>
+            <div style={{ padding: 'var(--space-16)', textAlign: 'center', color: 'var(--color-gray-400)' }}>
+              No departments found
+            </div>
+          </div>
+        ) : depts.map(dept => (
+          <div key={dept._id} className="card" style={{ opacity: dept.isActive ? 1 : 0.65 }}>
             <div className="card-body">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: 'var(--radius)',
-                    background: dept.active ? 'var(--color-primary-100)' : 'var(--color-gray-100)',
-                    color:      dept.active ? 'var(--color-primary-700)' : 'var(--color-gray-400)',
+                    background: dept.isActive ? 'var(--color-primary-100)' : 'var(--color-gray-100)',
+                    color:      dept.isActive ? 'var(--color-primary-700)' : 'var(--color-gray-400)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <Building2 size={22} />
@@ -161,8 +191,8 @@ const ManageDepartments = () => {
                     <span className="badge badge-gray" style={{ fontSize: 10 }}>{dept.code}</span>
                   </div>
                 </div>
-                <span className={`badge ${dept.active ? 'badge-success' : 'badge-gray'}`}>
-                  {dept.active ? 'Active' : 'Inactive'}
+                <span className={`badge ${dept.isActive ? 'badge-success' : 'badge-gray'}`}>
+                  {dept.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
 
@@ -170,12 +200,14 @@ const ManageDepartments = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
                   <Users size={14} color="var(--color-gray-400)" />
                   <span style={{ color: 'var(--color-gray-500)' }}>Head Officer:</span>
-                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-gray-800)' }}>{dept.officer}</span>
+                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-gray-800)' }}>
+                    {dept.headOfficer ? `${dept.headOfficer.firstName} ${dept.headOfficer.lastName}` : 'Unassigned'}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
                   <CheckCircle size={14} color="var(--color-gray-400)" />
                   <span style={{ color: 'var(--color-gray-500)' }}>Officers assigned:</span>
-                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-gray-800)' }}>{dept.officers}</span>
+                  <span style={{ fontWeight: 'var(--font-medium)', color: 'var(--color-gray-800)' }}>{dept.officers?.length || 0}</span>
                 </div>
               </div>
 
@@ -188,16 +220,16 @@ const ManageDepartments = () => {
                   <Edit2 size={13} /> Edit
                 </button>
                 <button
-                  className={`btn btn-sm ${dept.active ? 'btn-ghost' : 'btn-success'}`}
+                  className={`btn btn-sm ${dept.isActive ? 'btn-ghost' : 'btn-success'}`}
                   style={{ flex: 1 }}
-                  onClick={() => toggleActive(dept.id)}
+                  onClick={() => toggleActive(dept)}
                 >
-                  {dept.active ? 'Deactivate' : 'Activate'}
+                  {dept.isActive ? 'Deactivate' : 'Activate'}
                 </button>
                 <button
                   className="btn btn-ghost btn-sm"
                   style={{ color: 'var(--color-danger)' }}
-                  onClick={() => handleDelete(dept.id)}
+                  onClick={() => handleDelete(dept._id)}
                 >
                   <Trash2 size={14} />
                 </button>

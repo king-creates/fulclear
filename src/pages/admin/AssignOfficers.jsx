@@ -1,30 +1,32 @@
-import { useState }   from 'react';
-import { UserCheck, Search, Plus, Trash2, Building2 } from 'lucide-react';
-import toast          from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import { UserCheck, Search, Trash2, Building2, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import DashboardLayout from '../../component/layout/DashboardLayout';
 import Button          from '../../component/common/Button';
+import adminService    from '../../services/adminService';
 
-const allOfficers = [
-  { id: 4,  name: 'Adaeze Eze',    email: 'adaeze@ful.edu.ng', assignedTo: 'Library'        },
-  { id: 5,  name: 'James Obi',     email: 'james@ful.edu.ng',  assignedTo: 'Bursary'        },
-  { id: 6,  name: 'Ngozi Bello',   email: 'ngozi@ful.edu.ng',  assignedTo: 'Hostel Affairs' },
-  { id: 8,  name: 'Amaka Obi',     email: 'amaka@ful.edu.ng',  assignedTo: 'Medical Centre' },
-  { id: 11, name: 'Seun Babs',     email: 'seun@ful.edu.ng',   assignedTo: 'Alumni'         },
-  { id: 12, name: 'Kalu Eze',      email: 'kalu@ful.edu.ng',   assignedTo: 'Student Affairs'},
-  { id: 13, name: 'Taiwo Adeyemi', email: 'taiwo@ful.edu.ng',  assignedTo: null             },
-  { id: 14, name: 'Chidi Nwosu',   email: 'chidi@ful.edu.ng',  assignedTo: null             },
-  { id: 15, name: 'Bello Musa',    email: 'bello@ful.edu.ng',  assignedTo: null             },
-];
+const AssignModal = ({ officer, departments, onClose, onSaved }) => {
+  const [selected, setSelected] = useState(officer?.department || '');
+  const [saving, setSaving] = useState(false);
 
-const departments = [
-  'Library', 'Bursary', 'Hostel Affairs', 'Alumni Relations',
-  'Academic Affairs', 'Student Affairs', 'Medical Centre',
-  'Sports & Recreation', 'ICT Unit', 'Departmental Office',
-];
-
-const AssignModal = ({ officer, onClose, onSave }) => {
-  const [selected, setSelected] = useState(officer?.assignedTo ?? '');
+  const handleSave = async () => {
+    if (!selected) {
+      toast.error('Please select a department.');
+      return;
+    }
+    try {
+      setSaving(true);
+      await adminService.assignOfficer({ officerId: officer._id, departmentId: selected });
+      toast.success(`${officer.firstName} ${officer.lastName} assigned successfully.`);
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to assign officer.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -45,10 +47,10 @@ const AssignModal = ({ officer, onClose, onSave }) => {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 'var(--font-bold)',
             }}>
-              {officer.name.split(' ').map(n => n[0]).join('')}
+              {officer.firstName[0]}{officer.lastName[0]}
             </div>
             <div>
-              <p style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-gray-800)' }}>{officer.name}</p>
+              <p style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-gray-800)' }}>{officer.firstName} {officer.lastName}</p>
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>{officer.email}</p>
             </div>
           </div>
@@ -57,22 +59,14 @@ const AssignModal = ({ officer, onClose, onSave }) => {
             <select className="form-select" value={selected} onChange={e => setSelected(e.target.value)}>
               <option value="">Select a department...</option>
               {departments.map(d => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d._id} value={d._id}>{d.name}</option>
               ))}
             </select>
           </div>
         </div>
         <div className="modal-footer">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (!selected) { toast.error('Please select a department.'); return; }
-              onSave({ ...officer, assignedTo: selected });
-              onClose();
-              toast.success(`${officer.name} assigned to ${selected}.`);
-            }}
-          >
+          <Button variant="primary" loading={saving} onClick={handleSave}>
             <UserCheck size={16} /> Confirm Assignment
           </Button>
         </div>
@@ -82,33 +76,65 @@ const AssignModal = ({ officer, onClose, onSave }) => {
 };
 
 const AssignOfficers = () => {
-  const [officers,    setOfficers]    = useState(allOfficers);
+  const [officers,    setOfficers]    = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState('');
+  const [deptFilter,  setDeptFilter]  = useState('all');
   const [showModal,   setShowModal]   = useState(false);
   const [selectedOfficer, setSelectedOfficer] = useState(null);
-  const [deptFilter,  setDeptFilter]  = useState('all');
 
-  const uniqueDepts = ['all', ...new Set(officers.filter(o => o.assignedTo).map(o => o.assignedTo))];
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [usersRes, deptsRes] = await Promise.all([
+        adminService.getUsers({ role: 'officer' }),
+        adminService.getDepartments(),
+      ]);
+      setOfficers(usersRes.data.users);
+      setDepartments(deptsRes.data.departments);
+    } catch {
+      toast.error('Failed to load officers and departments.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = officers.filter(o => {
+    const name = `${o.firstName} ${o.lastName}`.toLowerCase();
     const matchSearch =
-      o.name.toLowerCase().includes(search.toLowerCase()) ||
+      name.includes(search.toLowerCase()) ||
       o.email.toLowerCase().includes(search.toLowerCase());
     const matchDept =
       deptFilter === 'all'         ? true :
-      deptFilter === 'unassigned'  ? !o.assignedTo :
-      o.assignedTo === deptFilter;
+      deptFilter === 'unassigned'  ? !o.department :
+      o.department === deptFilter;
     return matchSearch && matchDept;
   });
 
-  const handleSave = (updated) => {
-    setOfficers(prev => prev.map(o => o.id === updated.id ? updated : o));
+  const handleUnassign = async (officer) => {
+    try {
+      await adminService.unassignOfficer(officer._id);
+      toast.success('Officer unassigned.');
+      await fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to unassign officer.');
+    }
   };
 
-  const handleUnassign = (id) => {
-    setOfficers(prev => prev.map(o => o.id === id ? { ...o, assignedTo: null } : o));
-    toast.success('Officer unassigned.');
-  };
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-20)' }}>
+          <Loader2 size={28} className="animate-spin" color="var(--color-primary-700)" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -116,24 +142,22 @@ const AssignOfficers = () => {
       {showModal && selectedOfficer && (
         <AssignModal
           officer={selectedOfficer}
+          departments={departments}
           onClose={() => { setShowModal(false); setSelectedOfficer(null); }}
-          onSave={handleSave}
+          onSaved={fetchData}
         />
       )}
 
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-        <div>
-          <h1 className="page-title">Assign Officers</h1>
-          <p className="page-subtitle">Manage department officer assignments</p>
-        </div>
+      <div className="page-header">
+        <h1 className="page-title">Assign Officers</h1>
+        <p className="page-subtitle">Manage department officer assignments</p>
       </div>
 
-      {/* Stats */}
       <div className="stats-grid" style={{ marginBottom: 'var(--space-5)' }}>
         {[
           { label: 'Total Officers', value: officers.length,                          variant: 'primary' },
-          { label: 'Assigned',       value: officers.filter(o => o.assignedTo).length, variant: 'success' },
-          { label: 'Unassigned',     value: officers.filter(o => !o.assignedTo).length,variant: 'warning' },
+          { label: 'Assigned',       value: officers.filter(o => o.department).length, variant: 'success' },
+          { label: 'Unassigned',     value: officers.filter(o => !o.department).length,variant: 'warning' },
         ].map((s, i) => (
           <div className="stat-card" key={i}>
             <div className={`stat-icon ${s.variant}`}><UserCheck size={22} /></div>
@@ -145,9 +169,8 @@ const AssignOfficers = () => {
         ))}
       </div>
 
-      {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-        {['all', 'unassigned', ...departments.slice(0, 4)].map(f => (
+        {['all', 'unassigned', ...departments.map(d => d.name)].map(f => (
           <button
             key={f}
             onClick={() => setDeptFilter(f)}
@@ -163,13 +186,12 @@ const AssignOfficers = () => {
               color:       deptFilter === f ? 'white' : 'var(--color-gray-600)',
             }}
           >
-            {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === 'all' ? 'All' : f === 'unassigned' ? 'Unassigned' : f}
           </button>
         ))}
       </div>
 
       <div className="card">
-        {/* Search */}
         <div style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--color-gray-100)' }}>
           <div style={{ position: 'relative', maxWidth: 400 }}>
             <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-gray-400)' }} />
@@ -183,7 +205,6 @@ const AssignOfficers = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
           <table className="table">
             <thead>
@@ -202,7 +223,7 @@ const AssignOfficers = () => {
                   </td>
                 </tr>
               ) : filtered.map(officer => (
-                <tr key={officer.id}>
+                <tr key={officer._id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                       <div style={{
@@ -211,10 +232,10 @@ const AssignOfficers = () => {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 'var(--font-bold)', fontSize: 'var(--text-xs)',
                       }}>
-                        {officer.name.split(' ').map(n => n[0]).join('')}
+                        {officer.firstName[0]}{officer.lastName[0]}
                       </div>
                       <p style={{ fontWeight: 'var(--font-medium)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-800)' }}>
-                        {officer.name}
+                        {officer.firstName} {officer.lastName}
                       </p>
                     </div>
                   </td>
@@ -222,11 +243,11 @@ const AssignOfficers = () => {
                     {officer.email}
                   </td>
                   <td>
-                    {officer.assignedTo ? (
+                    {officer.department ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                         <Building2 size={14} color="var(--color-primary-700)" />
                         <span style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--font-medium)', color: 'var(--color-primary-700)' }}>
-                          {officer.assignedTo}
+                          {officer.department}
                         </span>
                       </div>
                     ) : (
@@ -240,13 +261,13 @@ const AssignOfficers = () => {
                         onClick={() => { setSelectedOfficer(officer); setShowModal(true); }}
                       >
                         <UserCheck size={14} />
-                        {officer.assignedTo ? 'Reassign' : 'Assign'}
+                        {officer.department ? 'Reassign' : 'Assign'}
                       </button>
-                      {officer.assignedTo && (
+                      {officer.department && (
                         <button
                           className="btn btn-ghost btn-sm"
                           style={{ color: 'var(--color-danger)' }}
-                          onClick={() => handleUnassign(officer.id)}
+                          onClick={() => handleUnassign(officer)}
                         >
                           <Trash2 size={14} />
                         </button>
