@@ -12,7 +12,7 @@ import Input                 from '../../component/common/Input';
 import Alert                 from '../../component/common/Alert';
 import { loginSchema }       from '../../utils/validators';
 import { loginUser }         from '../../store/slices/authSlice';
-import { useAuth }           from '../../hooks/useAuth';
+import { useAuth }           from '../../hooks/UseAuth';
 import { ROUTES }            from '../../constants/routes';
 
 const Login = () => {
