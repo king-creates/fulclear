@@ -17,6 +17,7 @@ const errorHandler       = require('./src/middleware/errorHandler');
 const connectDB          = require('./src/config/db');
 
 const app = express();
+app.set('trust proxy', 1);
 
 /* ── Database ── */
 connectDB();

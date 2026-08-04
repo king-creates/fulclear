@@ -8,6 +8,10 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 15000,
+  greetingTimeout:   15000,
+  socketTimeout:     15000,
+  family: 4,
 });
 
 /* Verify connection once on server startup so we know immediately if credentials are wrong */
@@ -19,3 +23,5 @@ transporter.verify((error) => {
     console.log("✅ Email service ready");
   }
 });
+
+module.exports = transporter;
