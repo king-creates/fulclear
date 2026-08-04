@@ -10,7 +10,7 @@ import DashboardLayout from '../../component/layout/DashboardLayout';
 import Button from '../../component/common/Button';
 import clearanceService from '../../services/clearanceService';
 import { ROUTES } from '../../constants/routes';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/UseAuth';
 
 const STEPS = ['Personal Info', 'Select Units', 'Confirm & Submit'];
 

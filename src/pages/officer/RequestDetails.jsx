@@ -13,7 +13,7 @@ import clearanceService from '../../services/clearanceService';
 import documentService from '../../services/documentService';
 import { formatDate } from '../../utils/formatDate';
 import { ROUTES } from '../../constants/routes';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/UseAuth';
 
 const checklist = [
   'Student identity documents verified',

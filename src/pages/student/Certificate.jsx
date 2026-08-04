@@ -5,7 +5,7 @@ import DashboardLayout    from '../../component/layout/DashboardLayout';
 import Button             from '../../component/common/Button';
 import certificateService from '../../services/certificateService';
 import { formatDate }     from '../../utils/formatDate';
-import { useAuth }        from '../../hooks/useAuth';
+import { useAuth }        from '../../hooks/UseAuth';
 
 const Certificate = () => {
   const { user } = useAuth();
