@@ -24,4 +24,4 @@ transporter.verify((error) => {
   }
 });
 
-module.exports = transporter;
+module.exports = transporter; 
