@@ -156,6 +156,9 @@ exports.viewDocument = async (req, res, next) => {
       ? document.filePath
       : path.join(__dirname, '../../', document.filePath);
 
+    console.log("Document filePath:", document.filePath);
+    console.log("Resolved path:", filePath);
+
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ success: false, message: 'File not found on server.' });
     }
