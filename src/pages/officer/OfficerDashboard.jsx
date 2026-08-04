@@ -9,7 +9,7 @@ import DashboardLayout         from '../../component/layout/DashboardLayout';
 import { PageLoader }          from '../../component/common/Spinner';
 import { formatDate, timeAgo } from '../../utils/formatDate';
 import { ROUTES }              from '../../constants/routes';
-import { useAuth }             from '../../hooks/useAuth';
+import { useAuth }             from '../../hooks/UseAuth';
 import clearanceService        from '../../services/clearanceService';
 
 const OfficerDashboard = () => {

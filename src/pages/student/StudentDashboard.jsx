@@ -9,7 +9,7 @@ import DashboardLayout          from '../../component/layout/DashboardLayout';
 import StatusTimeline           from '../../component/shared/StatusTimeline';
 import { PageLoader }           from '../../component/common/Spinner';
 import { ROUTES }               from '../../constants/routes';
-import { useAuth }              from '../../hooks/useAuth';
+import { useAuth }              from '../../hooks/UseAuth';
 import { formatDate }           from '../../utils/formatDate';
 import clearanceService         from '../../services/clearanceService';
 import documentService          from '../../services/documentService';

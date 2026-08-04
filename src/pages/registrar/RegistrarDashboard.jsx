@@ -9,7 +9,7 @@ import DashboardLayout         from '../../component/layout/DashboardLayout';
 import { PageLoader }          from '../../component/common/Spinner';
 import { formatDate, timeAgo } from '../../utils/formatDate';
 import { ROUTES }              from '../../constants/routes';
-import { useAuth }             from '../../hooks/useAuth';
+import { useAuth }             from '../../hooks/UseAuth';
 
 const mockStats = [
   { label: 'Awaiting Final Approval', value: '12', icon: <ClipboardCheck size={22} />, variant: 'warning' },

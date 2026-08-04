@@ -10,7 +10,7 @@ import DashboardLayout         from '../../component/layout/DashboardLayout';
 import { PageLoader }          from '../../component/common/Spinner';
 import { formatDate, timeAgo } from '../../utils/formatDate';
 import { ROUTES }              from '../../constants/routes';
-import { useAuth }             from '../../hooks/useAuth';
+import { useAuth }             from '../../hooks/UseAuth';
 
 const mockStats = [
   { label: 'Total Students',    value: '1,240', icon: <Users size={22} />,          variant: 'primary' },
