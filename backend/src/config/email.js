@@ -13,11 +13,9 @@ const transporter = nodemailer.createTransport({
 /* Verify connection once on server startup so we know immediately if credentials are wrong */
 transporter.verify((error) => {
   if (error) {
-    console.error('❌ Email service failed to connect:', error.message);
-    console.error('   Check EMAIL_USER and EMAIL_PASS in .env — EMAIL_PASS must be a Gmail App Password.');
+    console.error("❌ Email verification failed:");
+    console.error(error);
   } else {
-    console.log('✅ Email service ready');
+    console.log("✅ Email service ready");
   }
 });
-
-module.exports = transporter;
