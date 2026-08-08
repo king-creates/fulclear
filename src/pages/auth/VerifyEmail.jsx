@@ -1,28 +1,29 @@
 import { useState }    from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { MailCheck, RefreshCw } from 'lucide-react';
-import toast           from 'react-hot-toast';
+import toast            from 'react-hot-toast';
 
-import AuthLayout      from '../../component/layout/AuthLayout';
+import AuthLayout       from '../../component/layout/AuthLayout';
 import { Button, Alert } from '../../component/common';
-import api             from '@services/api';
-import { ROUTES }      from '@constants/routes';
+import api              from '../../services/api';
+import { ROUTES }       from '../../constants/routes';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email || '';
+
   const [code,        setCode]        = useState(['', '', '', '', '', '']);
   const [loading,     setLoading]     = useState(false);
   const [resending,   setResending]   = useState(false);
   const [serverError, setServerError] = useState('');
 
-  // Handle each digit box
   const handleChange = (value, index) => {
     if (!/^\d?$/.test(value)) return;
     const updated = [...code];
     updated[index] = value;
     setCode(updated);
 
-    // Auto-focus next box
     if (value && index < 5) {
       document.getElementById(`code-${index + 1}`)?.focus();
     }
@@ -55,12 +56,16 @@ const VerifyEmail = () => {
   };
 
   const handleResend = async () => {
+    if (!email) {
+      toast.error('Email address not found. Please register again.');
+      return;
+    }
     try {
       setResending(true);
-      await api.post('/auth/resend-verification');
+      await api.post('/auth/resend-verification', { email });
       toast.success('A new code has been sent to your email.');
-    } catch {
-      toast.error('Failed to resend code. Try again later.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend code. Try again later.');
     } finally {
       setResending(false);
     }
@@ -79,7 +84,9 @@ const VerifyEmail = () => {
         </div>
         <h2 className="auth-form-title">Check your email</h2>
         <p className="auth-form-subtitle" style={{ marginTop: 'var(--space-2)' }}>
-          We sent a 6-digit verification code to your email address. Enter it below to verify your account.
+          {email
+            ? `We sent a 6-digit verification code to ${email}.`
+            : 'We sent a 6-digit verification code to your email address.'} Enter it below to verify your account.
         </p>
       </div>
 
@@ -87,7 +94,6 @@ const VerifyEmail = () => {
         <Alert variant="danger" message={serverError} onClose={() => setServerError('')} />
       )}
 
-      {/* Code input boxes */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-3)', margin: 'var(--space-6) 0' }}>
         {code.map((digit, i) => (
           <input

@@ -31,7 +31,7 @@ const Register = () => {
       await api.post('/auth/register', payload);
 
       toast.success('Account created! Please check your email to verify.');
-      navigate(ROUTES.VERIFY_EMAIL);
+      navigate(ROUTES.VERIFY_EMAIL, { state: { email: payload.email } });
 
     } catch (err) {
       setServerError(err.response?.data?.message || 'Registration failed. Try again.');

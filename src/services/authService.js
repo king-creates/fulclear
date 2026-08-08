@@ -16,8 +16,8 @@ const authService = {
   verifyEmail: (code) =>
     api.post('/auth/verify-email', { code }),
 
-  resendVerification: () =>
-    api.post('/auth/resend-verification'),
+  resendVerification: (email) =>
+    api.post('/auth/resend-verification', { email }),
 
   forgotPassword: (email) =>
     api.post('/auth/forgot-password', { email }),
