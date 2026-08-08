@@ -1,25 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link }                 from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   FilePlus, Clock, CheckCircle, XCircle,
   ArrowRight, Award, FileText,
 } from 'lucide-react';
 
-import DashboardLayout          from '../../component/layout/DashboardLayout';
-import StatusTimeline           from '../../component/shared/StatusTimeline';
-import { PageLoader }           from '../../component/common/Spinner';
-import { ROUTES }               from '../../constants/routes';
-import { useAuth }              from '../../hooks/UseAuth';
-import { formatDate }           from '../../utils/formatDate';
-import clearanceService         from '../../services/clearanceService';
-import documentService          from '../../services/documentService';
-import notificationService      from '../../services/notificationService';
+import DashboardLayout from '../../component/layout/DashboardLayout';
+import StatusTimeline from '../../component/shared/StatusTimeline';
+import { PageLoader } from '../../component/common/Spinner';
+import { ROUTES } from '../../constants/routes';
+import { useAuth } from '../../hooks/UseAuth';
+import { formatDate } from '../../utils/formatDate';
+import clearanceService from '../../services/clearanceService';
+import documentService from '../../services/documentService';
+import notificationService from '../../services/notificationService';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
-  const [loading,       setLoading]       = useState(true);
-  const [clearance,     setClearance]     = useState(null);
-  const [docSummary,    setDocSummary]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [clearance, setClearance] = useState(null);
+  const [docSummary, setDocSummary] = useState(null);
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -48,30 +48,29 @@ const StudentDashboard = () => {
 
   const departments = clearance?.departments || [];
   const approvedCount = departments.filter(d => d.status === 'approved').length;
-  const pendingCount  = departments.filter(d => d.status === 'pending' || d.status === 'in_review').length;
+  const pendingCount = departments.filter(d => d.status === 'pending' || d.status === 'in_review').length;
   const rejectedCount = departments.filter(d => d.status === 'rejected').length;
-  const totalCount    = departments.length;
-  const pct           = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
+  const totalCount = departments.length;
+  const pct = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
 
   const stats = [
     { label: 'Departments Cleared', value: approvedCount, icon: <CheckCircle size={22} />, variant: 'success' },
-    { label: 'Pending Approval',    value: pendingCount,  icon: <Clock size={22} />,        variant: 'warning' },
-    { label: 'Rejected Steps',      value: rejectedCount, icon: <XCircle size={22} />,      variant: 'danger'  },
-    { label: 'Total Departments',   value: totalCount,    icon: <FileText size={22} />,     variant: 'info'    },
+    { label: 'Pending Approval', value: pendingCount, icon: <Clock size={22} />, variant: 'warning' },
+    { label: 'Rejected Steps', value: rejectedCount, icon: <XCircle size={22} />, variant: 'danger' },
+    { label: 'Total Departments', value: totalCount, icon: <FileText size={22} />, variant: 'info' },
   ];
 
   const timelineSteps = departments.map(d => ({
     department: d.departmentName,
-    officer:    d.officer ? `${d.officer.firstName} ${d.officer.lastName}` : '',
-    status:     d.status === 'approved' ? 'approved' : d.status === 'rejected' ? 'rejected' : d.status === 'in_review' ? 'active' : 'pending',
-    comment:    d.comment,
-    date:       d.reviewedAt ? formatDate(d.reviewedAt) : '',
+    officer: d.officer ? `${d.officer.firstName} ${d.officer.lastName}` : '',
+    status: d.status === 'approved' ? 'approved' : d.status === 'rejected' ? 'rejected' : d.status === 'in_review' ? 'active' : 'pending',
+    comment: d.comment,
+    date: d.reviewedAt ? formatDate(d.reviewedAt) : '',
   }));
 
   return (
     <DashboardLayout>
 
-      {/* Page header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <h1 className="page-title">Welcome, {user?.firstName} 👋</h1>
@@ -79,13 +78,22 @@ const StudentDashboard = () => {
             {user?.matricNumber} &nbsp;·&nbsp; {formatDate(new Date())}
           </p>
         </div>
-        {!clearance && (
-          <Link to={ROUTES.STUDENT_SUBMIT}>
-            <button className="btn btn-primary">
-              <FilePlus size={16} /> New Clearance Request
-            </button>
-          </Link>
-        )}
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          {clearance && (
+            <Link to={ROUTES.STUDENT_DOCUMENTS}>
+              <button className="btn btn-secondary">
+                <FilePlus size={16} /> Submit Documents
+              </button>
+            </Link>
+          )}
+          {!clearance && (
+            <Link to={ROUTES.STUDENT_SUBMIT}>
+              <button className="btn btn-primary">
+                <FilePlus size={16} /> New Clearance Request
+              </button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {!clearance ? (
@@ -161,9 +169,9 @@ const StudentDashboard = () => {
                 </div>
                 <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                   {[
-                    { label: 'Upload Documents',     to: ROUTES.STUDENT_DOCUMENTS,   icon: <FilePlus size={16} />, variant: 'primary'   },
-                    { label: 'Check Status',         to: ROUTES.STUDENT_STATUS,      icon: <Clock size={16} />,    variant: 'secondary' },
-                    { label: 'Download Certificate', to: ROUTES.STUDENT_CERTIFICATE, icon: <Award size={16} />,    variant: 'secondary' },
+                    { label: 'Upload Documents', to: ROUTES.STUDENT_DOCUMENTS, icon: <FilePlus size={16} />, variant: 'primary' },
+                    { label: 'Check Status', to: ROUTES.STUDENT_STATUS, icon: <Clock size={16} />, variant: 'secondary' },
+                    { label: 'Download Certificate', to: ROUTES.STUDENT_CERTIFICATE, icon: <Award size={16} />, variant: 'secondary' },
                   ].map((action) => (
                     <Link key={action.to} to={action.to} style={{ textDecoration: 'none' }}>
                       <button className={`btn btn-${action.variant} btn-block`} style={{ justifyContent: 'flex-start' }}>
