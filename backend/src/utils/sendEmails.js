@@ -1,13 +1,13 @@
-const transporter = require('../config/email');
-
 /* Actual send — used internally, always wrapped in try/catch by callers */
+const client = require('../config/email');
+
 const sendEmail = async ({ to, subject, html }) => {
   try {
-    await transporter.sendMail({
-      from:    process.env.EMAIL_FROM,
-      to,
-      subject,
-      html,
+    await client.transactionalEmails.sendTransacEmail({
+      sender:      { name: 'FUL Clearance', email: process.env.EMAIL_FROM },
+      to:          [{ email: to }],
+      subject:     subject,
+      htmlContent: html,
     });
     console.log(`✉️  Email sent to ${to} — "${subject}"`);
     return true;
